@@ -39,6 +39,8 @@ struct tex *tex_new()
 void tex_destroy(struct tex *tex)
 {
 	free(tex->buff);
+	free(tex->commit);
+	free(tex->preedit);
 	free(tex);
 }
 

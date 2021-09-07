@@ -54,6 +54,8 @@ struct wllatex {
 	// Set in the IME done handler
 	bool active;
 
+	bool should_quit;
+
 	// An array containing the currently pressed keys that we handled, so
 	// that we can correctly handle the release
 	xkb_keycode_t pressed[64];
@@ -297,6 +299,10 @@ static void handle_ime_done(void *data, struct zwp_input_method_v2 *ime)
 		zwp_input_method_keyboard_grab_v2_release(wll->grab);
 		wll->grab = NULL;
 		wll->active = false;
+		// TODO: This does strange stuff when multiple instances are running
+		if (wll->args.oneshot) {
+			wll->should_quit = true;
+		}
 	}
 
 	wll->serial++;
@@ -307,6 +313,9 @@ static void handle_ime_done(void *data, struct zwp_input_method_v2 *ime)
 
 static void handle_ime_unavailable(void *data, struct zwp_input_method_v2 *ime)
 {
+	struct wllatex *wll = data;
+	LOGE("Input method not available on this seat");
+	wll->should_quit = true;
 }
 
 
@@ -369,6 +378,9 @@ int main(int argc, char *argv[])
 	if (wll->args.verbose) {
 		log_set_level(LOG_LEVEL_DEBUG);
 	}
+	if (wll->args.oneshot) {
+		LOGI("Running in oneshot mode");
+	}
 
 	wll->display = wl_display_connect(NULL);
 	if (wll->display == NULL) {
@@ -393,9 +405,30 @@ int main(int argc, char *argv[])
 
 	zwp_input_method_v2_add_listener(wll->ime, &input_method_listener, wll);
 
-	while (wl_display_dispatch(wll->display) != -1) {
+	LOGI("Entering the event loop");
+	while (wl_display_dispatch(wll->display) != -1 && !wll->should_quit) {
 	}
 
-	// TODO: Exit and destroy
+	LOGI("Quitting...");
 
+	// To make LeakSanitizer happy:
+	if (wll->xkb_state) {
+		xkb_state_unref(wll->xkb_state);
+	}
+	if (wll->xkb_keymap) {
+		xkb_keymap_unref(wll->xkb_keymap);
+	}
+	xkb_context_unref(wll->xkb);
+	
+	zwp_virtual_keyboard_v1_destroy(wll->virt_keyboard);
+	zwp_input_method_v2_destroy(wll->ime);
+	wl_seat_destroy(wll->seat);
+	zwp_input_method_manager_v2_destroy(wll->ime_manager);
+	zwp_virtual_keyboard_manager_v1_destroy(wll->virt_manager);
+	wl_registry_destroy(wll->registry);
+	wl_display_disconnect(wll->display);
+
+	tex_destroy(wll->tex);
+
+	return EXIT_SUCCESS;
 }
