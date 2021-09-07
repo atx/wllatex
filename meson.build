@@ -35,7 +35,8 @@ conf_data.set('prefix', prefix)
 
 src_files = files(
     'main.c',
-    'tex.c'
+    'tex.c',
+    'utils.c',
 )
 
 subdir('protocol')
