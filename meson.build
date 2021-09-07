@@ -36,6 +36,7 @@ conf_data.set('prefix', prefix)
 src_files = files(
     'main.c',
     'tex.c',
+    'args.c',
     'utils.c',
 )
 

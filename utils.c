@@ -13,8 +13,20 @@ static const char *level_prefixes[] = {
 };
 
 
+static enum log_level min_log_level = LOG_LEVEL_INFO;
+
+
+void log_set_level(enum log_level level)
+{
+	min_log_level = level;
+}
+
+
 void log_print(enum log_level level, const char *func, const char *format, ...)
 {
+	if (level < min_log_level) {
+		return;
+	}
 	const char *prefix = "\x1b[1m\x1b[91m[XXX]";
 	char fnpad[30] = { 0 };
 	if (level < ARRAY_SIZE(level_prefixes) && level >= LOG_LEVEL_DEBUG) {
@@ -35,4 +47,14 @@ void log_print(enum log_level level, const char *func, const char *format, ...)
 	va_end(vas);
 	fputc('\n', stderr);
 	fflush(stderr);
+}
+
+
+char *wcs_to_mbs_alloc(const wchar_t *wstr)
+{
+	size_t res_len = wcslen(wstr)*4 + 1;
+	char *str = calloc(1, res_len);
+	// TODO: Assert on return value here
+	wcstombs(str, wstr, res_len);
+	return str;
 }

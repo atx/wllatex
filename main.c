@@ -16,6 +16,7 @@
 #include "text-input-unstable-v3-client-protocol.h"
 
 #include "utils.h"
+#include "args.h"
 #include "tex.h"
 
 enum state {
@@ -43,6 +44,8 @@ struct wllatex {
 	struct xkb_state *xkb_state;
 
 	struct tex *tex;
+
+	struct args args;
 
 	// Set in the IME activate/deactivate handlers, will propagate
 	// to active in the done handler
@@ -351,13 +354,21 @@ static const struct wl_registry_listener registry_listener = {
 };
 
 
-int main(int argc, const char *argv[])
+int main(int argc, char *argv[])
 {
 	struct wllatex wll_ = { 0 };
 	struct wllatex *wll = &wll_;
 	// TODO: Snatch wcs to mbs from wlhangul instead of forcing a locale
 	// that may not even exist on the system
 	setlocale(LC_ALL, "en_US.UTF-8");
+
+	int ret = parse_args(&wll->args, argc, argv);
+	if (ret != 0) {
+		return EXIT_FAILURE;
+	}
+	if (wll->args.verbose) {
+		log_set_level(LOG_LEVEL_DEBUG);
+	}
 
 	wll->display = wl_display_connect(NULL);
 	if (wll->display == NULL) {
