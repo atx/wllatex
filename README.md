@@ -27,8 +27,8 @@ instead make a keybind for:
 wllatex --oneshot
 ```
 
-The program then automatically terminates after the (first focused) text input field 
-loses focus.
+The program then automatically terminates after the (first one to receive at least
+one input key event) text input field  loses focus.
 
 ## Controls
 

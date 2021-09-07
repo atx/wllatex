@@ -54,6 +54,10 @@ struct wllatex {
 	// Set in the IME done handler
 	bool active;
 
+	// For some reason, we get a bunch of activate/deactivate events
+	// on startup. So, for --oneshot mode, we only quit after
+	// we receive at least one key event.
+	bool has_interacted;
 	bool should_quit;
 
 	// An array containing the currently pressed keys that we handled, so
@@ -159,6 +163,7 @@ static void handle_grab_key(void *data,
 	struct wllatex *wll = data;
 	xkb_keycode_t xkb_key = key + 8;
 	bool handled = false;
+	wll->has_interacted = true;
 	switch (state) {
 	case WL_KEYBOARD_KEY_STATE_PRESSED:
 		handled = handle_key_pressed(wll, xkb_key);
@@ -300,7 +305,7 @@ static void handle_ime_done(void *data, struct zwp_input_method_v2 *ime)
 		wll->grab = NULL;
 		wll->active = false;
 		// TODO: This does strange stuff when multiple instances are running
-		if (wll->args.oneshot) {
+		if (wll->args.oneshot && wll->has_interacted) {
 			wll->should_quit = true;
 		}
 	}
