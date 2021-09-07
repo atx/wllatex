@@ -7,8 +7,8 @@
 #include "tex.h"
 
 struct mapping {
-	const wchar_t name[32];
-	const wchar_t value[32];
+	wchar_t name[32];
+	wchar_t value[32];
 };
 
 #include "tex_table.h"
