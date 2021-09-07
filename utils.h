@@ -18,6 +18,6 @@ static inline char *wcs_to_mbs_alloc(const wchar_t *wstr)
 	size_t res_len = wcslen(wstr)*4 + 1;
 	char *str = calloc(1, res_len);
 	// TODO: Assert on return value here
-	ssize_t r = wcstombs(str, wstr, res_len);
+	wcstombs(str, wstr, res_len);
 	return str;
 }

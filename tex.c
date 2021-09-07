@@ -59,7 +59,7 @@ static void tex_update_mapping(struct tex *tex)
 	}
 	for (size_t i = 0; i < ARRAY_SIZE(latex_mappings); i++) {
 		// TODO: Binary search instead of this crap
-		struct mapping *m = &latex_mappings[i];
+		const struct mapping *m = &latex_mappings[i];
 		if (wmemcmp(tex->buff, m->name, len) == 0) {
 			// Depend on the order to match shortest first
 			tex->current_mapping = m;
