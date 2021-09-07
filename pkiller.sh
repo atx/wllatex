@@ -5,6 +5,8 @@
 # without using the keyboard.
 
 while true; do
-	dialog --msgbox "Click me" 10 20
+	if not dialog --msgbox "Click me $RANDOM" 10 20; then
+		exit
+	fi
 	pkill wllatex
 done
