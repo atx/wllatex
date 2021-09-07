@@ -8,7 +8,7 @@
 
 struct mapping {
 	wchar_t name[32];
-	wchar_t value[32];
+	wchar_t value;
 };
 
 #include "tex_table.h"
@@ -67,10 +67,7 @@ static void tex_update_mapping(struct tex *tex)
 		}
 	}
 	if (tex->current_mapping) {
-		wchar_t ccc[] = L"oσ ";
-		char *c = wcs_to_mbs_alloc(ccc);
-		LOGI("Updated mapping to %ls", tex->current_mapping->value);
-		free(c);
+		LOGD("Updated mapping to %lc", tex->current_mapping->value);
 	}
 }
 
@@ -127,9 +124,12 @@ static void tex_reject(struct tex *tex)
 static void tex_accept(struct tex *tex)
 {
 	LOGI("Accepting");
-	tex->commit = tex->current_mapping != NULL ?
-		wcs_to_mbs_alloc(tex->current_mapping->value) :
-		wcs_to_mbs_alloc(tex->buff);
+	if (tex->current_mapping != NULL) {
+		wchar_t wstr[2] = {tex->current_mapping->value, L'\0'};
+		tex->commit = wcs_to_mbs_alloc(wstr);
+	} else {
+		tex->commit = wcs_to_mbs_alloc(tex->buff);
+	}
 	tex_clear_buff(tex);
 }
 
@@ -140,7 +140,7 @@ static void tex_format_preedit(struct tex *tex)
 	wchar_t *b = wcsdup(tex->buff);
 	if (tex->current_mapping != NULL) {
 		// TODO: Multi-character values? Probably just force a single character...
-		b[0] = tex->current_mapping->value[0];
+		b[0] = tex->current_mapping->value;
 	}
 	tex->preedit = wcs_to_mbs_alloc(b);
 	free(b);
