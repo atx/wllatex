@@ -12,7 +12,7 @@ struct mapping;
 struct tex {
 	wchar_t *buff;
 
-	struct mapping *current_mapping;
+	const struct mapping *current_mapping;
 	char *preedit;
 	char *commit;
 };
