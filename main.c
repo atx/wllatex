@@ -377,6 +377,8 @@ int main(int argc, char *argv[])
 	setlocale(LC_ALL, "en_US.UTF-8");
 
 	int ret = parse_args(&wll->args, argc, argv);
+	// Note that this should not really happen, since libargp calls
+	// exit() internally.
 	if (ret != 0) {
 		return EXIT_FAILURE;
 	}

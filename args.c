@@ -54,6 +54,6 @@ int parse_args(struct args *args, int argc, char *argv[])
 		.verbose = false,
 		.oneshot = false
 	};
-	error_t err = argp_parse(&argp_parser, argc, argv, ARGP_NO_EXIT, NULL, args);
+	error_t err = argp_parse(&argp_parser, argc, argv, 0, NULL, args);
 	return err;
 }
