@@ -107,7 +107,7 @@ static void tex_append_to_buff(struct tex *tex, wchar_t wchr)
 
 static void tex_start(struct tex *tex)
 {
-	LOGI("Starting to match");
+	LOGD("Starting to match");
 	tex_clear_buff(tex);
 	tex_append_to_buff(tex, L'\\');
 	// No selected mapping
@@ -125,7 +125,7 @@ static void tex_reject(struct tex *tex)
 
 static void tex_accept(struct tex *tex)
 {
-	LOGI("Accepting");
+	LOGD("Accepting");
 	if (tex->current_mapping != NULL) {
 		wchar_t wstr[2] = {tex->current_mapping->value, L'\0'};
 		tex->commit = wcs_to_mbs_alloc(wstr);

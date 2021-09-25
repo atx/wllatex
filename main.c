@@ -127,11 +127,11 @@ static bool handle_key_pressed(struct wllatex *wll, xkb_keycode_t keycode)
 
 	// TODO: Proper accessors for this
 	if (tex->preedit) {
-		LOGI("Setting preedit to %s", tex->preedit);
+		LOGD("Setting preedit to %s", tex->preedit);
 		zwp_input_method_v2_set_preedit_string(wll->ime, tex->preedit,
 				strlen(tex->preedit), strlen(tex->preedit));
 	} else {
-		LOGI("Clearing preedit");
+		LOGD("Clearing preedit");
 		zwp_input_method_v2_set_preedit_string(wll->ime, "", 0, 0);
 	}
 	if (tex->commit) {
@@ -293,14 +293,14 @@ static void handle_ime_done(void *data, struct zwp_input_method_v2 *ime)
 	}
 
 	if (wll->pending_activate && !wll->active) {
-		LOGI("Grabbing the keyboard");
+		LOGD("Grabbing the keyboard");
 		wll->grab = zwp_input_method_v2_grab_keyboard(ime);
 		zwp_input_method_keyboard_grab_v2_add_listener(wll->grab,
 				&grab_listener, wll);
 		tex_reset(wll->tex);
 		wll->active = true;
 	} else if (wll->pending_deactivate && wll->active) {
-		LOGI("Releasing the keyboard");
+		LOGD("Releasing the keyboard");
 		zwp_input_method_keyboard_grab_v2_release(wll->grab);
 		wll->grab = NULL;
 		wll->active = false;
