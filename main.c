@@ -43,6 +43,8 @@ struct wllatex {
 	struct xkb_keymap *xkb_keymap;
 	struct xkb_state *xkb_state;
 
+	char *keymap_cache;
+
 	struct tex *tex;
 
 	struct args args;
@@ -203,7 +205,6 @@ static void handle_grab_keymap(void *data,
 		uint32_t format, int32_t fd, uint32_t size)
 {
 	struct wllatex *wll = data;
-	zwp_virtual_keyboard_v1_keymap(wll->virt_keyboard, format, fd, size);
 	// Note: For some reason, this gets called repeatedly until the first key is pressed
 
 	if (format != WL_KEYBOARD_KEYMAP_FORMAT_XKB_V1) {
@@ -218,11 +219,25 @@ static void handle_grab_keymap(void *data,
 		return;
 	}
 
-	if (wll->xkb_keymap != NULL) {
-		xkb_keymap_unref(wll->xkb_keymap);
+	// We avoid updating the virtual_keyboard keymap unless we actually
+	// get a different one.
+	// This is necessary since sway immediately redistributes the new
+	// keymap to all clients causing annoying CPU spikes caused by the
+	// simultaneous parsing.
+	// (note that this gets called every time we switch between input 
+	// fields or windows)
+	if (wll->keymap_cache == NULL || strcmp(wll->keymap_cache, str)) {
+		LOGI("Got an original keymap");
+		if (wll->xkb_keymap != NULL) {
+			xkb_keymap_unref(wll->xkb_keymap);
+		}
+		wll->xkb_keymap = xkb_keymap_new_from_string(wll->xkb, str,
+				XKB_KEYMAP_FORMAT_TEXT_V1, XKB_KEYMAP_COMPILE_NO_FLAGS);
+
+		wll->keymap_cache = realloc(wll->keymap_cache, size);
+		strncpy(wll->keymap_cache, str, size);
+		zwp_virtual_keyboard_v1_keymap(wll->virt_keyboard, format, fd, size);
 	}
-	wll->xkb_keymap = xkb_keymap_new_from_string(wll->xkb, str,
-			XKB_KEYMAP_FORMAT_TEXT_V1, XKB_KEYMAP_COMPILE_NO_FLAGS);
 	munmap(str, size);
 	close(fd);
 
