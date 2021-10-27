@@ -1,14 +1,16 @@
 
-#include <stdlib.h>
+#include <assert.h>
 #include <ctype.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "utils.h"
 
 #include "tex.h"
 
 struct mapping {
-	wchar_t name[64];
-	wchar_t value;
+	ucschar name[64];
+	ucschar value;
 };
 
 #include "tex_table.h"
@@ -21,14 +23,14 @@ void tex_reset(struct tex *tex)
 	tex->commit = NULL;
 	tex->preedit = NULL;
 	tex->current_mapping = NULL;
-	tex->buff[0] = L'\0';
+	memset(tex->buff, 0, sizeof(tex->buff));
+	tex->buff_len = 0;
 }
 
 
 struct tex *tex_new()
 {
 	struct tex *tex = calloc(1, sizeof(*tex));
-	tex->buff = calloc(16, sizeof(tex->buff[0]));
 
 	tex_reset(tex);
 
@@ -38,7 +40,6 @@ struct tex *tex_new()
 
 void tex_destroy(struct tex *tex)
 {
-	free(tex->buff);
 	free(tex->commit);
 	free(tex->preedit);
 	free(tex);
@@ -47,22 +48,23 @@ void tex_destroy(struct tex *tex)
 
 static bool tex_is_active(struct tex *tex)
 {
-	return wcslen(tex->buff) > 0;
+	return tex->buff[0] != 0;
 }
 
 
 static void tex_update_mapping(struct tex *tex)
 {
 	tex->current_mapping = NULL;
-	size_t len = wcslen(tex->buff);
-	if (len < 2) {
+	if (tex->buff_len < 2) {
 		// Only start matching after first actual character gets entered
 		return;
 	}
 	for (size_t i = 0; i < ARRAY_SIZE(latex_mappings); i++) {
 		// TODO: Binary search instead of this crap
 		const struct mapping *m = &latex_mappings[i];
-		if (wmemcmp(tex->buff, m->name, len) == 0) {
+		// TODO: Overflow here...
+		assert(tex->buff_len < ARRAY_SIZE(m->name));
+		if (memcmp(tex->buff, m->name, sizeof(tex->buff[0])*tex->buff_len) == 0) {
 			// Depend on the order to match shortest first
 			tex->current_mapping = m;
 			break;
@@ -77,30 +79,31 @@ static void tex_update_mapping(struct tex *tex)
 static void tex_clear_buff(struct tex *tex)
 {
 	tex->buff[0] = L'\0';
+	tex->buff_len = 0;
 	tex_update_mapping(tex);
 }
 
 
 static void tex_backspace(struct tex *tex)
 {
-	size_t len = wcslen(tex->buff);
-	if (len == 0) {
+	if (tex->buff_len == 0) {
 		LOGE("Attempted to backspace an empty buffer");
 		return;
 	}
-	tex->buff[len - 1] = L'\0';
+	tex->buff[--tex->buff_len] = L'\0';
 	tex_update_mapping(tex);
 }
 
 
 static void tex_append_to_buff(struct tex *tex, wchar_t wchr)
 {
-	// Current length, extra character and a terminator
-	// TODO: Maybe grow only?
-	size_t len = wcslen(tex->buff);
-	tex->buff = reallocarray(tex->buff, len + 1 + 1, sizeof(tex->buff[0]));
-	tex->buff[len++] = wchr;
-	tex->buff[len] = L'\0';
+	if (tex->buff_len >= ARRAY_SIZE(tex->buff) - 1) {
+		LOGW("Preedit buffer overflow");
+		// TODO: Maybe force a commit here?
+		return;
+	}
+	tex->buff[tex->buff_len++] = wchr;
+	tex->buff[tex->buff_len] = L'\0';
 	tex_update_mapping(tex);
 }
 
@@ -117,7 +120,7 @@ static void tex_start(struct tex *tex)
 
 static void tex_reject(struct tex *tex)
 {
-	tex->commit = wcs_to_mbs_alloc(tex->buff);
+	tex->commit = ucsstr_to_str(tex->buff);
 	tex_clear_buff(tex);
 	LOGI("Rejecting: '%s'", tex->commit);
 }
@@ -127,10 +130,10 @@ static void tex_accept(struct tex *tex)
 {
 	LOGD("Accepting");
 	if (tex->current_mapping != NULL) {
-		wchar_t wstr[2] = {tex->current_mapping->value, L'\0'};
-		tex->commit = wcs_to_mbs_alloc(wstr);
+		ucschar wstr[2] = {tex->current_mapping->value, L'\0'};
+		tex->commit = ucsstr_to_str(wstr);
 	} else {
-		tex->commit = wcs_to_mbs_alloc(tex->buff);
+		tex->commit = ucsstr_to_str(tex->buff);
 	}
 	tex_clear_buff(tex);
 }
@@ -139,17 +142,18 @@ static void tex_accept(struct tex *tex)
 static void tex_format_preedit(struct tex *tex)
 {
 	// TODO: Show current selection
-	wchar_t *b = wcsdup(tex->buff);
+	ucschar b[ARRAY_SIZE(tex->buff)];
+
+	memcpy(b, tex->buff, sizeof(b));
 	if (tex->current_mapping != NULL) {
 		// TODO: Multi-character values? Probably just force a single character...
 		b[0] = tex->current_mapping->value;
 	}
-	tex->preedit = wcs_to_mbs_alloc(b);
-	free(b);
+	tex->preedit = ucsstr_to_str(b);
 }
 
 
-bool tex_handle_key(struct tex *tex, xkb_keysym_t sym, wchar_t wchr)
+bool tex_handle_key(struct tex *tex, xkb_keysym_t sym, ucschar wchr)
 {
 	bool handled = false;
 

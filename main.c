@@ -101,7 +101,7 @@ static bool handle_key_pressed(struct wllatex *wll, xkb_keycode_t keycode)
 		XKB_KEY_Super_R,
 	};
 	xkb_keysym_t sym = xkb_state_key_get_one_sym(wll->xkb_state, keycode);
-	wchar_t wchr = xkb_state_key_get_utf32(wll->xkb_state, keycode);
+	ucschar wchr = xkb_state_key_get_utf32(wll->xkb_state, keycode);
 	struct tex *tex = wll->tex;
 
 	for (size_t i = 0; i < ARRAY_SIZE(ignored_syms); i++) {
@@ -387,9 +387,6 @@ int main(int argc, char *argv[])
 {
 	struct wllatex wll_ = { 0 };
 	struct wllatex *wll = &wll_;
-	// TODO: Snatch wcs to mbs from wlhangul instead of forcing a locale
-	// that may not even exist on the system
-	setlocale(LC_ALL, "en_US.UTF-8");
 
 	int ret = parse_args(&wll->args, argc, argv);
 	// Note that this should not really happen, since libargp calls

@@ -22,6 +22,3 @@ void log_print(enum log_level level, const char *func, const char *format, ...);
 
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof(x[0]))
-
-
-char *wcs_to_mbs_alloc(const wchar_t *wstr);

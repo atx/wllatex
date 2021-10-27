@@ -38,6 +38,7 @@ src_files = files(
     'tex.c',
     'args.c',
     'utils.c',
+    'utf8.c'
 )
 
 subdir('protocol')
