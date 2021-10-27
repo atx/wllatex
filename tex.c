@@ -7,7 +7,7 @@
 #include "tex.h"
 
 struct mapping {
-	wchar_t name[32];
+	wchar_t name[64];
 	wchar_t value;
 };
 
